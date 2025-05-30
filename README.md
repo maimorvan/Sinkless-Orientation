@@ -1,18 +1,23 @@
 # Sinkless-Orientation
-algorithm to do a sinkless orientation in a graph, we try to simulate a distributed algorithme
 
-To execute the code run : 
+Algorithm to perform a sinkless orientation in a graph. This project simulates a distributed algorithm.
 
-make 
+## How to run
 
-then 
+To compile the project, run:
 
-make run 
+```bash
+make
+```
 
-from your terminal
+Then, to execute the program:
 
-run : 
+```bash
+make run
+```
 
-make clean 
+To clean the compiled object files, use:
 
-if you want to delete .o files 
+```bash
+make clean
+```
