@@ -23,6 +23,25 @@ PathList* copy_pathlists(const Node* node, int* out_count) {
     return res;
 }
 
+int detect_cycle_in_pathlists(const Node* node) {
+    int cycle = false; // no cycle
+    for (int i = 0; i < node->li_count; ++i) {
+        for (int j = i; j < node->li_count; ++j) {
+            if (node->li[i].ids == node->li[j].ids) {
+                cycle = true; // cycle found
+                return cycle; // Question: What to return, true or ID?
+            }
+        }
+    }
+    return cycle;
+}
+
+void merge_pathlists(Node* node, PathList* idx, int received_count) {
+    return;
+}
+
+
+
 // Fonction principale
 void run_sinkless_orientation(Graph* graph) {
     int round = 0;
