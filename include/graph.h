@@ -24,10 +24,5 @@ void add_neighbor_both_side(Node* node, Node* neighbor);
 
 void ensure_neighbors_symmetry(Graph* graph);
 
-int try_neighbors_symmetry(const Graph* graph);
-
-void save_graph(const Graph* graph, const char* filename);
-
-Graph* load_graph(const char* filename);
 
 #endif // GRAPH_H
