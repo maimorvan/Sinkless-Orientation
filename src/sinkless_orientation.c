@@ -153,16 +153,16 @@ void print_all_message(Message*** outgoing, int n, SinklessGraph* SG) {
 }
 
 
-void run_sinkless_orientation(Graph* graph) {
+int run_sinkless_orientation(Graph* graph) {
     if (!graph) {
         printf("Error with the creation of the sinkless grapgh\n");
-        return;
+        return -1;
     }
 
     // Transforme le graph en sinklessgraph
     SinklessGraph* SG = graph_to_sinklessgraph(graph);
 
-    print_sinklessgraph(SG);
+    //print_sinklessgraph(SG);
 
     int round = 0;
     int changed = 1;
@@ -300,9 +300,24 @@ void run_sinkless_orientation(Graph* graph) {
 
     printf("\n--- Orientation terminée en %d rounds ---\n", round);
     
-    print_sinklessgraph(SG);
+    orient_graph_from_sinklessgraph(graph, SG);
+
+    //print_sinklessgraph(SG);
 
     free_sinklessgraph(SG);
+
+    return round;
+}
+
+void orient_graph_from_sinklessgraph(Graph* graph, const SinklessGraph* SG) {
+    if (!graph || !SG) return;
+    for (int i = 0; i < graph->node_count; ++i) {
+        Node* node = graph->nodes[i];
+        SinklessNode* sn = SG->nodes[i];
+        for (int j = 0; j < node->neighbor_count; ++j) {
+            node->neighbors[j]->direction = sn->node->neighbors[j]->direction;
+        }
+    }
 }
 
 void free_sinklessgraph(SinklessGraph* sg) {

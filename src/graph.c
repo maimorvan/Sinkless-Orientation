@@ -226,3 +226,45 @@ Graph* load_graph(const char* filename) {
     }
     return graph;
 }
+
+int check_graph_orientation(const Graph* graph) {
+    int n = graph->node_count;
+    int** mat = malloc(n * sizeof(int*));
+    for (int i = 0; i < n; ++i) {
+        mat[i] = calloc(n, sizeof(int));
+    }
+
+    // Remplissage de la matrice
+    for (int i = 0; i < n; ++i) {
+        Node* node = graph->nodes[i];
+        for (int j = 0; j < node->neighbor_count; ++j) {
+            int neighbor_id = node->neighbors[j]->neighbor_id;
+            if (node->neighbors[j]->direction == OUTGOING) {
+                mat[i][neighbor_id] += 1;
+                mat[neighbor_id][i] += 1;
+            } else if (node->neighbors[j]->direction == INCOMING) {
+                mat[i][neighbor_id] -= 1;
+                mat[neighbor_id][i] -= 1;
+            }
+        }
+    }
+
+    // Vérification de la matrice
+    int ok = 1;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            if (mat[i][j] != 0) {
+                if (mat[i][j] == 1 || mat[i][j] == -1) {
+                    printf("Problème : arête (%d, %d) non orientée des deux côtés !\n", i, j);
+                } else {
+                    printf("Erreur d'orientation entre %d et %d (valeur %d)\n", i, j, mat[i][j]);
+                }
+                ok = 0;
+            }
+        }
+        free(mat[i]);
+    }
+    free(mat);
+
+    return ok ? 0 : 1;
+}

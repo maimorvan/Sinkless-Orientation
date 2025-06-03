@@ -62,7 +62,9 @@ void update_is_partially_oriented(SinklessNode* sn);
 
 void print_all_message(Message*** outgoing, int n, SinklessGraph* SG);
 
-void run_sinkless_orientation(Graph* graph);
+int run_sinkless_orientation(Graph* graph);
+
+void orient_graph_from_sinklessgraph(Graph* graph, const SinklessGraph* SG);
 
 void free_sinklessgraph(SinklessGraph* sg);
 

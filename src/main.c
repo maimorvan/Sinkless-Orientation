@@ -12,7 +12,16 @@ int main() {
         return 1;
     }
     
-    run_sinkless_orientation(graph);
+    int round = run_sinkless_orientation(graph);
+    printf("%d", round);
+
+    print_graph(graph);
+
+    if (check_graph_orientation(graph) == 0) {
+        printf("Orientation correct !\n");
+    } else {
+        printf("Orientation incorrecte !\n");
+    }
     
     free_graph(graph);
 
