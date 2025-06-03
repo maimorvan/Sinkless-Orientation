@@ -1,0 +1,5 @@
+# Ignorer les fichiers objets compilés
+*.o
+
+# Ignorer l'exécutable principal
+test_graph

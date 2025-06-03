@@ -158,3 +158,71 @@ void ensure_neighbors_symmetry(Graph* graph) {
         }
     }
 }
+
+int try_neighbors_symmetry(const Graph* graph) {
+    for (int i = 0; i < graph->node_count; ++i) {
+        Node* node = graph->nodes[i];
+        for (int j = 0; j < node->neighbor_count; ++j) {
+            int neighbor_id = node->neighbors[j]->neighbor_id;
+            Node* neighbor_node = graph->nodes[neighbor_id];
+            if (!has_neighbor(neighbor_node, node->id)) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+
+void save_graph(const Graph* graph, const char* filename) {
+    FILE* f = fopen(filename, "w");
+    if (!f) {
+        printf("Erreur ouverture fichier %s\n", filename);
+        return;
+    }
+    fprintf(f, "%d\n", graph->node_count);
+    for (int i = 0; i < graph->node_count; ++i) {
+        Node* node = graph->nodes[i];
+        fprintf(f, "%d", node->neighbor_count);
+        for (int j = 0; j < node->neighbor_count; ++j) {
+            fprintf(f, " %d", node->neighbors[j]->neighbor_id);
+        }
+        fprintf(f, "\n");
+    }
+    fclose(f);
+}
+
+
+Graph* load_graph(const char* filename) {
+    FILE* f = fopen(filename, "r");
+    if (!f) {
+        printf("Erreur ouverture fichier %s\n", filename);
+        return NULL;
+    }
+
+    int node_count;
+    fscanf(f, "%d", &node_count);
+    Node** nodes = malloc(node_count * sizeof(Node*));
+    for (int i = 0; i < node_count; ++i) {
+        nodes[i] = create_node(i);
+    }
+    for (int i = 0; i < node_count; ++i) {
+        int neighbor_count;
+        fscanf(f, "%d", &neighbor_count);
+        for (int j = 0; j < neighbor_count; ++j) {
+            int neighbor_id;
+            fscanf(f, "%d", &neighbor_id);
+            if (!has_neighbor(nodes[i], neighbor_id)) {
+                add_neighbor_one_side(nodes[i], neighbor_id);
+            }
+        }
+    }
+    fclose(f);
+    Graph* graph = malloc(sizeof(Graph));
+    graph->nodes = nodes;
+    graph->node_count = node_count;
+    if (try_neighbors_symmetry(graph) == 1) {
+        printf("Warning : The graoh is not symetric");
+    }
+    return graph;
+}
