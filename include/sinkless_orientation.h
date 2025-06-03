@@ -18,6 +18,7 @@ typedef enum {
     NODE_UNORIENTED,
     NODE_LEAF,
     NODE_IN_CYCLE,
+    NODE_PARTIALLY_ORIENTED,
     NODE_ORIENTED
 } SinklessStatus;
 
@@ -25,7 +26,6 @@ typedef enum {
     MSG_PATHLIST,
     MSG_CYCLE,
     MSG_HAS_OUTGOING, 
-    MSG_LEAF
 } MessageType;
 
 typedef struct {
@@ -51,6 +51,16 @@ SinklessGraph* graph_to_sinklessgraph(const Graph* graph);
 void print_message(const Message* msg);
 
 void print_sinklessgraph(const SinklessGraph* sg);
+
+int is_leaf(const SinklessNode* sn);
+
+int is_partially_oriented(const SinklessNode* sn);
+
+void update_is_a_leaf(SinklessNode* sn);
+
+void update_is_partially_oriented(SinklessNode* sn);
+
+void print_all_message(Message*** outgoing, int n, SinklessGraph* SG);
 
 void run_sinkless_orientation(Graph* graph);
 
