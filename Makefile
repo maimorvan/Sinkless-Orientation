@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -Iinclude
+CFLAGS = -Wall -Wextra -std=c99 -g -fsanitize=address -Iinclude
 
 SRC = src/main.c src/graph.c src/node.c src/edge.c
 OBJ = $(SRC:.c=.o)
