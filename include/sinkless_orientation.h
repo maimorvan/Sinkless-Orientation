@@ -62,9 +62,19 @@ void update_is_partially_oriented(SinklessNode* sn);
 
 void print_all_message(Message*** outgoing, int n, SinklessGraph* SG);
 
+PathList* copy_and_extend_pathlists(const PathList* src, int node_id);
+
+PathList* concat_pathlists(const PathList* a, const PathList* b);
+
+Message* make_pathlist_message(const PathList* pathlists, int node_id, int neighbor_id);
+
+PathList* copy_pathlist(const PathList* src);
+
 int run_sinkless_orientation(Graph* graph);
 
 void orient_graph_from_sinklessgraph(Graph* graph, const SinklessGraph* SG);
+
+void free_pathlist(PathList* pl);
 
 void free_sinklessgraph(SinklessGraph* sg);
 

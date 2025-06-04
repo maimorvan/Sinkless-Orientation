@@ -5,7 +5,7 @@
 
 
 int main() {
-    Graph* graph = load_graph("graph/tree.txt");
+    Graph* graph = load_graph("graph/cycle.txt");
 
     if (!graph) {
         printf("Erreur lors de la création du graphe.\n");

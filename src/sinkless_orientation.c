@@ -152,6 +152,124 @@ void print_all_message(Message*** outgoing, int n, SinklessGraph* SG) {
     }
 }
 
+PathList* copy_and_extend_pathlists(const PathList* src, int node_id) {
+    if (!src || src->count == 0){
+        PathList* res = malloc(sizeof(PathList));
+        res->count = 1;
+        res->paths = malloc(res->count * sizeof(Path));
+        res->paths[0].length = 1;
+        res->paths[0].ids = malloc(1 * sizeof(int));
+        res->paths[0].ids[0] = node_id;
+        return res;
+    }
+    PathList* res = malloc(sizeof(PathList));
+    res->count = src->count;
+    res->paths = malloc(res->count * sizeof(Path));
+    for (int i = 0; i < src->count; ++i) {
+        res->paths[i].length = src->paths[i].length + 1;
+        res->paths[i].ids = malloc(res->paths[i].length * sizeof(int));
+        // Copie l'ancien chemin
+        for (int j = 0; j < src->paths[i].length; ++j) {
+            res->paths[i].ids[j] = src->paths[i].ids[j];
+        }
+        // Ajoute l'id courant à la fin
+        res->paths[i].ids[res->paths[i].length - 1] = node_id;
+    }
+    return res;
+}
+
+PathList* concat_pathlists(const PathList* a, const PathList* b) {
+    if (!a && !b) return NULL;
+    if (!a) return copy_pathlist(b); 
+    if (!b) return  copy_pathlist(a);
+
+    PathList* res = malloc(sizeof(PathList));
+    res->count = a->count + b->count;
+    res->paths = malloc(res->count * sizeof(Path));
+    int idx = 0;
+    for (int i = 0; i < a->count; ++i, ++idx) {
+        res->paths[idx].length = a->paths[i].length;
+        res->paths[idx].ids = malloc(a->paths[i].length * sizeof(int));
+        for (int j = 0; j < a->paths[i].length; ++j)
+            res->paths[idx].ids[j] = a->paths[i].ids[j];
+    }
+    for (int i = 0; i < b->count; ++i, ++idx) {
+        res->paths[idx].length = b->paths[i].length;
+        res->paths[idx].ids = malloc(b->paths[i].length * sizeof(int));
+        for (int j = 0; j < b->paths[i].length; ++j)
+            res->paths[idx].ids[j] = b->paths[i].ids[j];
+    }
+    return res;
+}
+
+Message* make_pathlist_message(const PathList* pathlists, int node_id, int neighbor_id) {
+    if (!pathlists || pathlists->count == 0) {
+        // Cas de base : on envoie juste notre id
+        PathList* to_send = copy_and_extend_pathlists(NULL, node_id);
+        Message* msg = malloc(sizeof(Message));
+        msg->type = MSG_PATHLIST;
+        msg->paths = to_send;
+        msg->cycle_ids = NULL;
+        msg->cycle_length = 0;
+        return msg;
+    }
+
+    // Compte les chemins à garder (on ne veux pas répondre à un message qu'on vient de nous evoyer dans la meme direction)
+    int count = 0;
+    for (int i = 0; i < pathlists->count; ++i) {
+        if (pathlists->paths[i].length == 0) continue;
+        if (pathlists->paths[i].ids[pathlists->paths[i].length - 1] != neighbor_id) {
+            count++;
+        }
+    }
+
+    PathList* filtered = malloc(sizeof(PathList));
+    filtered->count = count;
+    filtered->paths = malloc(count * sizeof(Path));
+    int idx = 0;
+    for (int i = 0; i < pathlists->count; ++i) {
+        if (pathlists->paths[i].length == 0) continue;
+        if (pathlists->paths[i].ids[pathlists->paths[i].length - 1] != neighbor_id) {
+            filtered->paths[idx].length = pathlists->paths[i].length + 1;
+            filtered->paths[idx].ids = malloc(filtered->paths[idx].length * sizeof(int));
+            for (int j = 0; j < pathlists->paths[i].length; ++j) {
+                filtered->paths[idx].ids[j] = pathlists->paths[i].ids[j];
+            }
+            filtered->paths[idx].ids[filtered->paths[idx].length - 1] = node_id;
+            idx++;
+        }
+    }
+
+    // Si aucun chemin à envoyer, on envoie juste notre id
+    if (filtered->count == 0) {
+        free(filtered->paths);
+        free(filtered);
+        filtered = copy_and_extend_pathlists(NULL, node_id);
+    }
+
+    Message* msg = malloc(sizeof(Message));
+    msg->type = MSG_PATHLIST;
+    msg->paths = filtered;
+    msg->cycle_ids = NULL;
+    msg->cycle_length = 0;
+    return msg;
+}
+
+PathList* copy_pathlist(const PathList* src) {
+    if (!src || src->count == 0) return NULL;
+    PathList* res = malloc(sizeof(PathList));
+    res->count = src->count;
+    res->paths = malloc(res->count * sizeof(Path));
+    for (int i = 0; i < src->count; ++i) {
+        res->paths[i].length = src->paths[i].length;
+        res->paths[i].ids = malloc(res->paths[i].length * sizeof(int));
+        for (int j = 0; j < src->paths[i].length; ++j) {
+            res->paths[i].ids[j] = src->paths[i].ids[j];
+        }
+    }
+    return res;
+}
+
 
 int run_sinkless_orientation(Graph* graph) {
     if (!graph) {
@@ -171,8 +289,9 @@ int run_sinkless_orientation(Graph* graph) {
     // Tableau des messages à envoyer à chaque voisin
     Message*** outgoing = malloc(n * sizeof(Message**));
 
-    while (changed) {
-        changed = 0;
+
+    while (changed < 7) {
+        changed +=1;
         printf("\n--- Round %d ---\n", round);
 
         // 1. Phase A : chaque node évalue son état local
@@ -225,8 +344,18 @@ int run_sinkless_orientation(Graph* graph) {
                 // Si le node vient de détecter un cycle, envoie MSG_CYCLE à chaque voisin du cycle
                 
                 // Sinon, envoie les listes de chemins comme d'habitude
+                else if (node->node->neighbors[j]->direction == UNKNOWN && !(node->status == NODE_ORIENTED || node->status == NODE_LEAF)) {
+                    Message* msg = make_pathlist_message(node->pathlists, node->node->id, node->node->neighbors[j]->neighbor_id);
+                    outgoing[i][j] = msg;
+                }
                 
             }
+            // Netoyage de notre pathlist 
+            if (node->pathlists) {
+                free_pathlist(node->pathlists);
+                node->pathlists = NULL;
+            }
+
             }
 
         // 3. Phase C : réception des messages (chaque node reçoit de ses voisins)
@@ -264,6 +393,17 @@ int run_sinkless_orientation(Graph* graph) {
                         }
                     }
                     // Le message est un MSG_PATHLIST
+                    if (msg->type == MSG_PATHLIST) {
+                        // Fusionne la pathlist reçue avec la tienne
+                        PathList* new_list = NULL;
+                        if (!node->pathlists) {
+                            new_list = copy_pathlist(msg->paths);
+                        } else {
+                            new_list = concat_pathlists(node->pathlists, msg->paths);
+                        }
+                        free_pathlist(node->pathlists);
+                        node->pathlists = new_list;
+                    }
 
                     // Le message est un MSG_CYCLE
                     }
@@ -318,6 +458,15 @@ void orient_graph_from_sinklessgraph(Graph* graph, const SinklessGraph* SG) {
             node->neighbors[j]->direction = sn->node->neighbors[j]->direction;
         }
     }
+}
+
+void free_pathlist(PathList* pl) {
+    if (!pl) return;
+    for (int i = 0; i < pl->count; ++i) {
+        free(pl->paths[i].ids);
+    }
+    free(pl->paths);
+    free(pl);
 }
 
 void free_sinklessgraph(SinklessGraph* sg) {
