@@ -113,12 +113,16 @@ void update_is_partially_oriented(SinklessNode* sn) {
             break;
         }
     }
-    if (!has_outgoing) return; // Rien à faire si aucune arête OUTGOING
+    if (!has_outgoing){
+        sn->status = NODE_UNORIENTED;
+        return; // Rien à faire si aucune arête OUTGOING
+    }
 
-    // Oriente toutes les autres arêtes vers le nœud courant
+    // Oriente toutes les autres arêtes vers le nœud courant si le voisin est plus petit que soi
+    /*
     for (int i = 0; i < n_neighbors; ++i) {
         if (sn->node->neighbors[i]->direction != OUTGOING) {
-            if (sn->node->neighbors[i]->neighbor_id < sn->node->id){
+            if (sn->node->neighbors[i]->neighbor_id < sn->node->id){ 
                 sn->node->neighbors[i]->direction = INCOMING;
             }
         }
@@ -134,7 +138,7 @@ void update_is_partially_oriented(SinklessNode* sn) {
         sn->status = NODE_ORIENTED;
     }else{
         sn->status = NODE_PARTIALLY_ORIENTED;
-    }
+    }*/
 }
 
 void print_all_message(Message*** outgoing, int n, SinklessGraph* SG) {
@@ -271,6 +275,166 @@ PathList* copy_pathlist(const PathList* src) {
 }
 
 
+int* detect_cycle(const SinklessNode* node, int* len_cycle, int* orient) {
+    if (!node || !node->pathlists) {
+        *len_cycle = 0;
+        *orient = 0;
+        return NULL;
+    }
+    int my_id = node->node->id;
+    for (int i = 0; i < node->pathlists->count; ++i) {
+        const Path* path = &node->pathlists->paths[i];
+        for (int j = 0; j < path->length - 1; ++j) {
+            if (path->ids[j] == my_id) {
+                int len = path->length - j;
+                int* cycle = malloc(len * sizeof(int));
+                int max_id = my_id; 
+                int max_pos = 0;
+                int orientation = 0; 
+                for (int k = 0; k < len; ++k) {
+                    cycle[k] = path->ids[j + k];
+                    if (path->ids[j+k]>max_id){
+                        max_id = path->ids[j+k]; 
+                        max_pos = k; 
+                    }
+                }
+                if (max_id == my_id){
+                    if (cycle[len-1]>cycle[1]){
+                        orientation = -1; 
+                    }else{
+                        orientation = 1; 
+                    }
+                }else{
+                    if (cycle[max_pos-1]>cycle[(max_pos+1+len)%len]){
+                            orientation = -1; 
+                        }else{
+                            orientation = +1;
+                    }
+                }
+                *len_cycle = len; 
+                *orient = orientation;
+                return cycle;
+            }
+        }  
+    }
+    *len_cycle = 0;
+    *orient = 0;
+    return NULL;
+}
+
+void update_cycle(const SinklessNode* node, int* cycle, int len, int orientation){
+    if (!node || !cycle || len < 2) return;
+    int my_id = node->node->id;
+    int pos = -1;
+
+    // Debug print cycle 
+    printf("Cycle détecté (len=%d, orientation=%d) : [", len, orientation);
+    for (int i = 0; i < len; ++i) {
+        printf("%d", cycle[i]);
+        if (i < len - 1) printf(",");
+    }
+    printf("]\n");
+
+    // Trouver la position de notre noeud dans le cycle
+    for (int i = 0; i < len; ++i) {
+        if (cycle[i] == my_id) {
+            pos = i;
+            break;
+        }
+    }
+    if (pos == -1) return; // Notre noeud n'est pas dans le cycle
+
+    // Oriente l'arête du cycle dans la bonne direction (OUTGOING)
+    int next_pos = (pos + orientation + len) % len;
+    int neighbor_id = cycle[next_pos];
+    for (int i = 0; i < node->node->neighbor_count; ++i) {
+        if (node->node->neighbors[i]->neighbor_id == neighbor_id) {
+            node->node->neighbors[i]->direction = OUTGOING;
+        }
+    }
+
+    // Oriente l'arête du cycle dans le sens opposé (INCOMING)
+    int prev_pos = (pos - orientation + len) % len;
+    int prev_neighbor_id = cycle[prev_pos];
+    for (int i = 0; i < node->node->neighbor_count; ++i) {
+        if (node->node->neighbors[i]->neighbor_id == prev_neighbor_id) {
+            node->node->neighbors[i]->direction = INCOMING;
+        }
+    }
+
+    // Oriente les autres arêtes (hors cycle) vers nous si l'id du voisin est inférieur
+    /*
+    for (int i = 0; i < node->node->neighbor_count; ++i) {
+        int nid = node->node->neighbors[i]->neighbor_id;
+        // Vérifie si ce voisin est dans le cycle
+        int in_cycle = 0;
+        for (int j = 0; j < len; ++j) {
+            if (cycle[j] == nid) {
+                in_cycle = 1;
+                break;
+            }
+        }
+        if (!in_cycle) {
+            node->node->neighbors[i]->direction = INCOMING;
+        }
+    }
+    */
+    // Mets à jour le statut
+    ((SinklessNode*)node)->status = NODE_IN_CYCLE;
+
+}
+
+
+int fin_algo(SinklessGraph* g){
+    for (int i = 0; i < g->node_count; ++i) {
+        if (g->nodes[i]->status == NODE_UNORIENTED) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+void finalize_orientations(SinklessGraph* g) {
+    for (int i = 0; i < g->node_count; ++i) {
+        SinklessNode* sn = g->nodes[i];
+        Node* node = sn->node;
+        for (int j = 0; j < node->neighbor_count; ++j) {
+            NeighborInfo* neighbor = node->neighbors[j];
+            int neighbor_id = neighbor->neighbor_id;
+            Node* other = g->nodes[neighbor_id]->node;
+
+            // Cherche l'index de node dans la liste des voisins de other
+            int idx_other = -1;
+            for (int k = 0; k < other->neighbor_count; ++k) {
+                if (other->neighbors[k]->neighbor_id == node->id) {
+                    idx_other = k;
+                    break;
+                }
+            }
+            if (idx_other == -1) continue; // sécurité
+
+            // Si déjà cohérent, rien à faire
+            if (neighbor->direction != UNKNOWN && other->neighbors[idx_other]->direction != UNKNOWN)
+                continue;
+
+            // Oriente dans la direction du plus grand id
+            if (neighbor->direction == UNKNOWN && other->neighbors[idx_other]->direction == UNKNOWN) {
+                if (node->id > neighbor_id) {
+                    neighbor->direction = OUTGOING;
+                    other->neighbors[idx_other]->direction = INCOMING;
+                } else {
+                    neighbor->direction = INCOMING;
+                    other->neighbors[idx_other]->direction = OUTGOING;
+                }
+            } else if (neighbor->direction != UNKNOWN && other->neighbors[idx_other]->direction == UNKNOWN) {
+                other->neighbors[idx_other]->direction = (neighbor->direction == OUTGOING) ? INCOMING : OUTGOING;
+            } else if (neighbor->direction == UNKNOWN && other->neighbors[idx_other]->direction != UNKNOWN) {
+                neighbor->direction = (other->neighbors[idx_other]->direction == OUTGOING) ? INCOMING : OUTGOING;
+            }
+        }
+    }
+}
+
 int run_sinkless_orientation(Graph* graph) {
     if (!graph) {
         printf("Error with the creation of the sinkless grapgh\n");
@@ -296,6 +460,7 @@ int run_sinkless_orientation(Graph* graph) {
 
         // 1. Phase A : chaque node évalue son état local
         int* became_oriented_leaf = calloc(n, sizeof(int));
+        int* became_cycle = calloc(n, sizeof(int));
 
 
         for (int i = 0; i < n; ++i) {
@@ -307,7 +472,7 @@ int run_sinkless_orientation(Graph* graph) {
                 printf("\n--- Node %d is a leaf ---\n", node->node->id);
                 update_is_a_leaf(node);
                 became_oriented_leaf[i] = 1;
-                changed = 1;
+                //changed = 1;
                 continue;
             }
             // Detection is partially oriented 
@@ -315,12 +480,23 @@ int run_sinkless_orientation(Graph* graph) {
                 printf("\n--- Node %d is a partially oriented ---\n", node->node->id);
                 update_is_partially_oriented(node);
                 became_oriented_leaf[i] = 1;
-                changed = 1;
+                //changed = 1;
                 continue;
             }
 
 
             // Détection cycle
+            int len_cycle = 0; 
+            int orientation = 0; 
+            int* cycle = detect_cycle(node,&len_cycle, &orientation);
+            if (cycle != NULL){
+                printf("\n--- Node %d is a cycle ---\n", node->node->id);
+                update_cycle(node,cycle,len_cycle,orientation);
+                became_cycle[i] = 1;
+                //changed = 1;
+                free(cycle);
+                continue;
+            }
             
             }
 
@@ -332,7 +508,7 @@ int run_sinkless_orientation(Graph* graph) {
                 outgoing[i][j] = NULL;
                 // The node became oriented (was a leaf or was partially oriented)
                 if (became_oriented_leaf[i]) {
-                    if (node->node->neighbors[j]->direction == INCOMING){
+                    if (node->node->neighbors[j]->direction != OUTGOING){
                         Message* msg = malloc(sizeof(Message));
                         msg->type = MSG_HAS_OUTGOING;
                         msg->paths = NULL;
@@ -342,9 +518,20 @@ int run_sinkless_orientation(Graph* graph) {
                     }
                 }
                 // Si le node vient de détecter un cycle, envoie MSG_CYCLE à chaque voisin du cycle
+                else if (became_cycle[i]) {
+                    if (node->node->neighbors[j]->direction != OUTGOING){
+                        Message* msg = malloc(sizeof(Message));
+                        msg->type = MSG_HAS_OUTGOING;
+                        msg->paths = NULL;
+                        msg->cycle_ids = NULL;
+                        msg->cycle_length = 0;
+                        outgoing[i][j] = msg;
+                    }
+                }
                 
                 // Sinon, envoie les listes de chemins comme d'habitude
-                else if (node->node->neighbors[j]->direction == UNKNOWN && !(node->status == NODE_ORIENTED || node->status == NODE_LEAF)) {
+                else if (node->node->neighbors[j]->direction == UNKNOWN && !(node->status == NODE_ORIENTED || node->status == NODE_LEAF 
+                || node->status == NODE_IN_CYCLE)) {
                     Message* msg = make_pathlist_message(node->pathlists, node->node->id, node->node->neighbors[j]->neighbor_id);
                     outgoing[i][j] = msg;
                 }
@@ -359,13 +546,15 @@ int run_sinkless_orientation(Graph* graph) {
             }
 
         // 3. Phase C : réception des messages (chaque node reçoit de ses voisins)
-        print_all_message(outgoing, SG->node_count, SG);
+        //print_all_message(outgoing, SG->node_count, SG);
 
         for (int i = 0; i < n; ++i) {
             SinklessNode* node = SG->nodes[i];
 
-            if (node->status == NODE_ORIENTED|| node->status == NODE_LEAF) continue;
+            if (node->status == NODE_ORIENTED|| node->status == NODE_LEAF || node->status == NODE_IN_CYCLE) continue;
 
+            int max_neighbor_id = -1;
+            
             for (int j = 0; j < node->node->neighbor_count; ++j) {
                 int neighbor_id = node->node->neighbors[j]->neighbor_id;
                 Node* neighbor = SG->nodes[neighbor_id]->node;
@@ -384,16 +573,20 @@ int run_sinkless_orientation(Graph* graph) {
                     // Le message est un MSG_HAS_OUTGOING
                     if (msg->type == MSG_HAS_OUTGOING) {
                         // Oriente l'arête sortante vers ce voisin
+                        if (neighbor_id>max_neighbor_id){
+                            max_neighbor_id = neighbor_id;
+                        }
+                        /*
                         for (int m = 0; m < node->node->neighbor_count; ++m) {
                             if (node->node->neighbors[m]->neighbor_id == neighbor_id) {
                                 node->node->neighbors[m]->direction = OUTGOING;
                                 node->status = NODE_PARTIALLY_ORIENTED;
                                 break;
                             }
-                        }
+                        }*/
                     }
                     // Le message est un MSG_PATHLIST
-                    if (msg->type == MSG_PATHLIST) {
+                    else if (msg->type == MSG_PATHLIST) {
                         // Fusionne la pathlist reçue avec la tienne
                         PathList* new_list = NULL;
                         if (!node->pathlists) {
@@ -406,6 +599,14 @@ int run_sinkless_orientation(Graph* graph) {
                     }
 
                     // Le message est un MSG_CYCLE
+                    }
+                }
+        
+                for (int m = 0; m < node->node->neighbor_count; ++m) {
+                    if (node->node->neighbors[m]->neighbor_id == max_neighbor_id) {
+                        node->node->neighbors[m]->direction = OUTGOING;
+                        node->status = NODE_PARTIALLY_ORIENTED;
+                        break;
                     }
                 }
             }
@@ -432,13 +633,25 @@ int run_sinkless_orientation(Graph* graph) {
         }
         
         free(became_oriented_leaf);
-        //print_sinklessgraph(SG);
+        free(became_cycle);
+        print_sinklessgraph(SG);
+
+        // Fin de l'algo ? 
+
+        if (fin_algo(SG)==1){
+            printf("Sortie Fini !");
+            break;
+        }
+
+
         round++;
         }
     
     free(outgoing);
 
     printf("\n--- Orientation terminée en %d rounds ---\n", round);
+
+    finalize_orientations(SG);
     
     orient_graph_from_sinklessgraph(graph, SG);
 

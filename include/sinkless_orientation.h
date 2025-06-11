@@ -70,6 +70,15 @@ Message* make_pathlist_message(const PathList* pathlists, int node_id, int neigh
 
 PathList* copy_pathlist(const PathList* src);
 
+int* detect_cycle(const SinklessNode* node, int* len_cycle, int* orient);
+
+void update_cycle(const SinklessNode* node, int* cycle, int len, int orientation);
+
+int fin_algo(SinklessGraph* g);
+
+void finalize_orientations(SinklessGraph* g);
+
+
 int run_sinkless_orientation(Graph* graph);
 
 void orient_graph_from_sinklessgraph(Graph* graph, const SinklessGraph* SG);
