@@ -5,7 +5,7 @@
 
 
 int main() {
-    Graph* graph = load_graph("graph/2cycle_diflength.txt");
+    Graph* graph = create_random_graph(20, 1);
 
     if (!graph) {
         printf("Erreur lors de la création du graphe.\n");
