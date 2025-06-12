@@ -6,7 +6,7 @@
 
 int main() {
     
-    Graph* graph = create_random_graph_delta(5000,3);
+    Graph* graph = create_random_graph_delta(500,3);
 
     //print_graph(graph);
 

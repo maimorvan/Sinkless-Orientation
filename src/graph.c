@@ -89,7 +89,7 @@ Graph* create_random_graph_delta(int node_count, int delta) {
     free(edges);
 
     if (!ok) {
-        printf("Impossible de générer un graphe régulier avec ces paramètres.\n");
+        printf("Problem during the generation of the graph.\n");
         for (int i = 0; i < node_count; ++i) free_node(nodes[i]);
         free(nodes);
         return NULL;
