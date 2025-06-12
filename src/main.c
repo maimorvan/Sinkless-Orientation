@@ -5,15 +5,17 @@
 
 
 int main() {
-    Graph* graph = create_random_graph(20, 1);
+    
+    Graph* graph = create_random_graph(20, 2);
+
+    print_graph(graph);
 
     if (!graph) {
         printf("Erreur lors de la création du graphe.\n");
         return 1;
     }
     
-    int round = run_sinkless_orientation(graph);
-    printf("%d", round);
+    run_sinkless_orientation(graph);
 
     print_graph(graph);
 
@@ -22,7 +24,13 @@ int main() {
     } else {
         printf("Orientation incorrecte !\n");
     }
-    
+    if (check_sinkless_orientation(graph) == 0) {
+        printf("Sinkless correct !\n");
+    } else {
+        printf("Sinkless incorrecte !\n");
+    }
+
+
     free_graph(graph);
 
     return 0;

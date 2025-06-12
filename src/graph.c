@@ -255,7 +255,7 @@ int check_graph_orientation(const Graph* graph) {
         for (int j = 0; j < n; ++j) {
             if (mat[i][j] != 0) {
                 if (mat[i][j] == 1 || mat[i][j] == -1) {
-                    printf("Problème : arête (%d, %d) non orientée des deux côtés !\n", i, j);
+                    printf("Problème : arête (%d, %d) orientée que dans 1 sens!\n", i, j);
                 } else {
                     printf("Erreur d'orientation entre %d et %d (valeur %d)\n", i, j, mat[i][j]);
                 }
@@ -267,4 +267,25 @@ int check_graph_orientation(const Graph* graph) {
     free(mat);
 
     return ok ? 0 : 1;
+}
+
+int check_sinkless_orientation(const Graph* graph) {
+    int ok = 1;
+    for (int i = 0; i < graph->node_count; ++i) {
+        Node* node = graph->nodes[i];
+        if (node->neighbor_count >= 3) {
+            int has_outgoing = 0;
+            for (int j = 0; j < node->neighbor_count; ++j) {
+                if (node->neighbors[j]->direction == OUTGOING) {
+                    has_outgoing = 1;
+                    break;
+                }
+            }
+            if (!has_outgoing) {
+                printf("Node %d (degré %d) is a sink !\n", node->id, node->neighbor_count);
+                ok = 0;
+            }
+        }
+    }
+    return ok ? 0 : 1; 
 }

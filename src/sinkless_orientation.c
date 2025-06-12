@@ -94,7 +94,7 @@ void update_is_a_leaf(SinklessNode* sn) {
         printf("problem in orienting the leaf");
     }
     // orient your edge incomming
-    sn->node->neighbors[0]->direction = INCOMING;
+    //sn->node->neighbors[0]->direction = INCOMING;
 
     sn->status = NODE_LEAF;
     
@@ -354,13 +354,13 @@ void update_cycle(const SinklessNode* node, int* cycle, int len, int orientation
     }
 
     // Oriente l'arête du cycle dans le sens opposé (INCOMING)
-    int prev_pos = (pos - orientation + len) % len;
-    int prev_neighbor_id = cycle[prev_pos];
-    for (int i = 0; i < node->node->neighbor_count; ++i) {
-        if (node->node->neighbors[i]->neighbor_id == prev_neighbor_id) {
-            node->node->neighbors[i]->direction = INCOMING;
-        }
-    }
+    // int prev_pos = (pos - orientation + len) % len;
+    // int prev_neighbor_id = cycle[prev_pos];
+    // for (int i = 0; i < node->node->neighbor_count; ++i) {
+    //     if (node->node->neighbors[i]->neighbor_id == prev_neighbor_id) {
+    //         node->node->neighbors[i]->direction = INCOMING;
+    //     }
+    // }
 
     // Oriente les autres arêtes (hors cycle) vers nous si l'id du voisin est inférieur
     /*
@@ -401,7 +401,7 @@ void finalize_orientations(SinklessGraph* g) {
         for (int j = 0; j < node->neighbor_count; ++j) {
             NeighborInfo* neighbor = node->neighbors[j];
             int neighbor_id = neighbor->neighbor_id;
-            Node* other = g->nodes[neighbor_id]->node;
+            Node* other = g->nodes[neighbor_id]->node; 
 
             // Cherche l'index de node dans la liste des voisins de other
             int idx_other = -1;
@@ -411,9 +411,11 @@ void finalize_orientations(SinklessGraph* g) {
                     break;
                 }
             }
-            if (idx_other == -1) continue; // sécurité
-
-            // Si déjà cohérent, rien à faire
+            if (idx_other == -1){
+                printf("problem of construction of the graph"); 
+                 continue; // sécurité
+            }
+            // Si déjà cohérent, rien à faire 
             if (neighbor->direction != UNKNOWN && other->neighbors[idx_other]->direction != UNKNOWN)
                 continue;
 
