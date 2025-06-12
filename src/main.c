@@ -6,9 +6,9 @@
 
 int main() {
     
-    Graph* graph = create_random_graph(20, 2);
+    Graph* graph = create_random_graph_delta(5000,3);
 
-    print_graph(graph);
+    //print_graph(graph);
 
     if (!graph) {
         printf("Erreur lors de la création du graphe.\n");
@@ -17,7 +17,7 @@ int main() {
     
     run_sinkless_orientation(graph);
 
-    print_graph(graph);
+    //print_graph(graph);
 
     if (check_graph_orientation(graph) == 0) {
         printf("Orientation correct !\n");

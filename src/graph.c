@@ -22,7 +22,7 @@ Graph* create_random_graph(int node_count, int min_nb_neighbors) {
                 }
 
                 if(has_neighbor(nodes[i], neighbor_id)){
-                    unique = 1;
+                    unique = 0;
                 }
             } while (!unique);
 

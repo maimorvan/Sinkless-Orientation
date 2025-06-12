@@ -328,12 +328,12 @@ void update_cycle(const SinklessNode* node, int* cycle, int len, int orientation
     int pos = -1;
 
     // Debug print cycle 
-    printf("Cycle détecté (len=%d, orientation=%d) : [", len, orientation);
-    for (int i = 0; i < len; ++i) {
-        printf("%d", cycle[i]);
-        if (i < len - 1) printf(",");
-    }
-    printf("]\n");
+    // printf("Cycle détecté (len=%d, orientation=%d) : [", len, orientation);
+    // for (int i = 0; i < len; ++i) {
+    //     printf("%d", cycle[i]);
+    //     if (i < len - 1) printf(",");
+    // }
+    // printf("]\n");
 
     // Trouver la position de notre noeud dans le cycle
     for (int i = 0; i < len; ++i) {
@@ -471,7 +471,7 @@ int run_sinkless_orientation(Graph* graph) {
 
             // Détection feuille
             if (is_leaf(node)) {
-                printf("\n--- Node %d is a leaf ---\n", node->node->id);
+                //printf("\n--- Node %d is a leaf ---\n", node->node->id);
                 update_is_a_leaf(node);
                 became_oriented_leaf[i] = 1;
                 //changed = 1;
@@ -479,7 +479,7 @@ int run_sinkless_orientation(Graph* graph) {
             }
             // Detection is partially oriented 
             if (is_partially_oriented(node)){
-                printf("\n--- Node %d is a partially oriented ---\n", node->node->id);
+                //printf("\n--- Node %d is a partially oriented ---\n", node->node->id);
                 update_is_partially_oriented(node);
                 became_oriented_leaf[i] = 1;
                 continue;
@@ -491,7 +491,7 @@ int run_sinkless_orientation(Graph* graph) {
             int orientation = 0; 
             int* cycle = detect_cycle(node,&len_cycle, &orientation);
             if (cycle != NULL){
-                printf("\n--- Node %d is a cycle ---\n", node->node->id);
+                //printf("\n--- Node %d is a cycle ---\n", node->node->id);
                 update_cycle(node,cycle,len_cycle,orientation);
                 became_cycle[i] = 1;
                 free(cycle);
