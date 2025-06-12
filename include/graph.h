@@ -30,4 +30,8 @@ void save_graph(const Graph* graph, const char* filename);
 
 Graph* load_graph(const char* filename);
 
+int check_graph_orientation(const Graph* graph);
+
+int check_sinkless_orientation(const Graph* graph);
+
 #endif // GRAPH_H

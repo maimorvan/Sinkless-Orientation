@@ -22,7 +22,7 @@ Graph* create_random_graph(int node_count, int min_nb_neighbors) {
                 }
 
                 if(has_neighbor(nodes[i], neighbor_id)){
-                    unique = 1;
+                    unique = 0;
                 }
             } while (!unique);
 
@@ -225,4 +225,67 @@ Graph* load_graph(const char* filename) {
         printf("Warning : The graoh is not symetric");
     }
     return graph;
+}
+
+int check_graph_orientation(const Graph* graph) {
+    int n = graph->node_count;
+    int** mat = malloc(n * sizeof(int*));
+    for (int i = 0; i < n; ++i) {
+        mat[i] = calloc(n, sizeof(int));
+    }
+
+    // Remplissage de la matrice
+    for (int i = 0; i < n; ++i) {
+        Node* node = graph->nodes[i];
+        for (int j = 0; j < node->neighbor_count; ++j) {
+            int neighbor_id = node->neighbors[j]->neighbor_id;
+            if (node->neighbors[j]->direction == OUTGOING) {
+                mat[i][neighbor_id] += 1;
+                mat[neighbor_id][i] += 1;
+            } else if (node->neighbors[j]->direction == INCOMING) {
+                mat[i][neighbor_id] -= 1;
+                mat[neighbor_id][i] -= 1;
+            }
+        }
+    }
+
+    // Vérification de la matrice
+    int ok = 1;
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            if (mat[i][j] != 0) {
+                if (mat[i][j] == 1 || mat[i][j] == -1) {
+                    printf("Problème : arête (%d, %d) orientée que dans 1 sens!\n", i, j);
+                } else {
+                    printf("Erreur d'orientation entre %d et %d (valeur %d)\n", i, j, mat[i][j]);
+                }
+                ok = 0;
+            }
+        }
+        free(mat[i]);
+    }
+    free(mat);
+
+    return ok ? 0 : 1;
+}
+
+int check_sinkless_orientation(const Graph* graph) {
+    int ok = 1;
+    for (int i = 0; i < graph->node_count; ++i) {
+        Node* node = graph->nodes[i];
+        if (node->neighbor_count >= 3) {
+            int has_outgoing = 0;
+            for (int j = 0; j < node->neighbor_count; ++j) {
+                if (node->neighbors[j]->direction == OUTGOING) {
+                    has_outgoing = 1;
+                    break;
+                }
+            }
+            if (!has_outgoing) {
+                printf("Node %d (degré %d) is a sink !\n", node->id, node->neighbor_count);
+                ok = 0;
+            }
+        }
+    }
+    return ok ? 0 : 1; 
 }
