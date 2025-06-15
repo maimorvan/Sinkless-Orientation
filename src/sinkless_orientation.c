@@ -460,7 +460,8 @@ int run_sinkless_orientation(Graph* graph) {
         changed +=1;
         printf("\n--- Round %d ---\n", round);
 
-        // 1. Phase A : chaque node évalue son état local
+        // 1. Phase A : each node evalute it's internal state 
+
         int* became_oriented_leaf = calloc(n, sizeof(int));
         int* became_cycle = calloc(n, sizeof(int));
 
@@ -469,7 +470,7 @@ int run_sinkless_orientation(Graph* graph) {
             SinklessNode* node = SG->nodes[i];
             if (node->status == NODE_ORIENTED || node->status == NODE_LEAF) continue;
 
-            // Détection feuille
+            // Détection leaf
             if (is_leaf(node)) {
                 //printf("\n--- Node %d is a leaf ---\n", node->node->id);
                 update_is_a_leaf(node);
@@ -500,7 +501,7 @@ int run_sinkless_orientation(Graph* graph) {
             
             }
 
-        // 2. Phase B : préparation des messages à envoyer à chaque voisin
+        // 2. Phase B : Preparation of the messages to send 
         for (int i = 0; i < n; ++i) {
             SinklessNode* node = SG->nodes[i];
             outgoing[i] = malloc(node->node->neighbor_count* sizeof(Message*));
@@ -545,7 +546,8 @@ int run_sinkless_orientation(Graph* graph) {
 
             }
 
-        // 3. Phase C : réception des messages (chaque node reçoit de ses voisins)
+        // 3. Phase C : Reception of the messages
+
         //print_all_message(outgoing, SG->node_count, SG);
 
         for (int i = 0; i < n; ++i) {
@@ -631,7 +633,7 @@ int run_sinkless_orientation(Graph* graph) {
         // Fin de l'algo ? 
 
         if (fin_algo(SG)==1){
-            printf("Sortie Fini !");
+            //printf("Sortie Fini !");
             break;
         }
 
@@ -641,7 +643,7 @@ int run_sinkless_orientation(Graph* graph) {
     
     free(outgoing);
 
-    printf("\n--- Orientation terminée en %d rounds ---\n", round);
+    //printf("\n--- Orientation terminée en %d rounds ---\n", round);
 
     finalize_orientations(SG);
     
